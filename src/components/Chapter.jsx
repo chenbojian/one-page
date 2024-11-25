@@ -13,9 +13,9 @@ export default function Chapter() {
 
     const getChapterImages = () => getChapter()?.images ?? []
 
-    const getNextChapter = () => {
+    const getNextChapterUrl = () => {
         if (!getChapter()) {
-            return
+            return ""
         }
 
         const chapterUrls = appState.books[getChapter().bookUrl].chapters
@@ -23,12 +23,12 @@ export default function Chapter() {
         const currentIdx = chapterUrls.indexOf(searchParams.url)
 
         if (currentIdx === -1 || currentIdx === chapterUrls.length - 1) {
-            return
+            return ""
         }
 
         const nextChapterUrl = chapterUrls[currentIdx + 1]
 
-        return appState.chapters[nextChapterUrl]
+        return "/chapter?url=" + (appState.chapters[nextChapterUrl]?.url ?? "")
     }
 
     return (
@@ -37,7 +37,7 @@ export default function Chapter() {
             <For each={getChapterImages()}>
                 {(image) => (<img src={image} />)}
             </For>
-            <A href={getNextChapter()?.url ?? ""}>Next Chapter</A>
+            <A href={getNextChapterUrl()}>Next Chapter</A>
         </>
     )
 

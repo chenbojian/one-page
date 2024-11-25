@@ -7,14 +7,20 @@ function proxy(url) {
   return "https://corsproxy.io/?" + encodeURIComponent(url);
 }
 
-// export async function loadBooks() {
-//     const res = await fetch(proxy('https://www.veryim.com/manhua/6703/'))
-//     const text = await res.text()
-//     const html = document.createElement('html')
-//     html.innerHTML = text
-//     html.querySelector('div')
-//     console.log(html.querySelector('div'))
-// }
+export async function loadBooks() {
+  const res = await fetch(proxy("https://www.veryim.com/rank/"));
+  const text = await res.text();
+  const html = document.createElement("html");
+  html.innerHTML = text;
+  const links = html.querySelectorAll(
+    "div.container div.panel-body div.media-body h4.book-title a"
+  );
+
+  return [...links].map((l) => ({
+    name: l.textContent,
+    url: "https://www.veryim.com" + new URL(l.href).pathname,
+  }));
+}
 
 export async function loadBook(bookUrl) {
   if (bookUrl in appState.books) {
@@ -39,26 +45,32 @@ export async function loadBook(bookUrl) {
     };
   });
   chapters.reverse();
-  setAppState("books", produce((books) => {
-    books[bookUrl] = {
-      name: title,
-      url: bookUrl,
-      chapters: chapters.map((chapter) => chapter.url),
-    };
-  }));
-  setAppState("chapters", produce((currentChapters) => {
-    for (const chapter of chapters) {
-      if (chapter.url in currentChapters) {
-        continue;
-      }
-      currentChapters[chapter.url] = {
-        bookUrl: bookUrl,
-        name: chapter.name,
-        url: chapter.url,
-        images: [],
+  setAppState(
+    "books",
+    produce((books) => {
+      books[bookUrl] = {
+        name: title,
+        url: bookUrl,
+        chapters: chapters.map((chapter) => chapter.url),
       };
-    }
-  }));
+    })
+  );
+  setAppState(
+    "chapters",
+    produce((currentChapters) => {
+      for (const chapter of chapters) {
+        if (chapter.url in currentChapters) {
+          continue;
+        }
+        currentChapters[chapter.url] = {
+          bookUrl: bookUrl,
+          name: chapter.name,
+          url: chapter.url,
+          images: [],
+        };
+      }
+    })
+  );
 }
 
 export async function loadChapter(chapterUrl) {
@@ -87,10 +99,12 @@ export async function loadChapter(chapterUrl) {
       return url;
     }
   });
-  setAppState("chapters", produce((chapters) => {
-    chapters[chapterUrl].images = imgUrls;
-  }));
-
+  setAppState(
+    "chapters",
+    produce((chapters) => {
+      chapters[chapterUrl].images = imgUrls;
+    })
+  );
 }
 
 function getParentPath(url) {
