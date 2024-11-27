@@ -53,11 +53,16 @@ export default function Chapter() {
                 <A href={getBookUrl()}>Book</A>
             </div>
             <h2>{getChapter()?.name}</h2>
+            <div class="content">
             <For each={getChapterImages()}>
                 {(image) => (<img src={image} />)}
             </For>
+            </div>
             <div class="next-chapter">
                 <A href={getNextChapterUrl()} onClick={markChapterFinished}>Next Chapter</A>
+            </div>
+            <div class="back-to-book">
+                <A href={getBookUrl()} onClick={markChapterFinished}>Book</A>
             </div>
         </>
     )
