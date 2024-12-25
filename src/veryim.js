@@ -4,7 +4,7 @@ import { useAppState } from "./store";
 const [appState, setAppState] = useAppState();
 
 function proxy(url) {
-  return "https://corsproxy.io/?" + encodeURIComponent(url);
+  return "https://corsproxy.io/?url=" + encodeURIComponent(url);
 }
 
 export async function loadBooks() {
