@@ -10,8 +10,8 @@ async function loadData() {
         name: watchedItems[i].name,
         notifyPrice: watchedItems[i].notifyPrice,
         price: items['item_' + i]?.price,
-        minPrice: items['item_' + i]?.minPrice,
-        maxPrice: items['item_' + i]?.maxPrice
+        minPrice: items['item_' + i]?.min_price,
+        maxPrice: items['item_' + i]?.max_price
     }))
 }
 
