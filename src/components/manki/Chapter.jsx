@@ -1,6 +1,6 @@
 import { A, useSearchParams } from "@solidjs/router";
-import { useAppState } from "../store";
-import { loadChapter } from "../veryim";
+import { useAppState } from "./store";
+import { loadChapter } from "./veryim";
 import './Chapter.css'
 import { createEffect } from "solid-js";
 import { produce } from "solid-js/store";

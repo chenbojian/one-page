@@ -1,6 +1,6 @@
 import { A, useSearchParams } from "@solidjs/router";
-import { useAppState } from "../store";
-import { loadBook } from "../veryim";
+import { useAppState } from "./store";
+import { loadBook } from "./veryim";
 import { createEffect } from "solid-js";
 
 export default function Book() {

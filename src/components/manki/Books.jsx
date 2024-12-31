@@ -1,5 +1,5 @@
 import { A } from "@solidjs/router"
-import { loadBooks } from "../veryim"
+import { loadBooks } from "./veryim"
 import { createResource, For } from "solid-js"
 
 
