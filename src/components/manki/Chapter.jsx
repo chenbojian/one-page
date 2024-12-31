@@ -38,7 +38,7 @@ export default function Chapter() {
 
         const nextChapterUrl = chapterUrls[currentIdx + 1]
 
-        return "/chapter?url=" + (appState.chapters[nextChapterUrl]?.url ?? "")
+        return "/manki/chapter?url=" + (appState.chapters[nextChapterUrl]?.url ?? "")
     }
 
     const markChapterFinished = () => {

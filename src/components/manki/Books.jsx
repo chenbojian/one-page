@@ -11,7 +11,7 @@ export default function Books() {
                 <For each={data()} fallback={<div>Loading...</div>}>
                     {(book) => (
                         <div>
-                            <A href={"/book?url=" + book.url}>{book.name}</A>
+                            <A href={"/manki/book?url=" + book.url}>{book.name}</A>
                         </div>
                     )}
                 </For>

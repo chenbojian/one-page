@@ -23,7 +23,7 @@ export default function Book() {
             <ul>
             <For each={getChapters()}>
                 {(chapter) => (<li style={{display: 'flex'}}>
-                    <A href={"/chapter?url=" + chapter.url}>{chapter.name}</A>{chapter.finished ? '✅' : ''}
+                    <A href={"/manki/chapter?url=" + chapter.url}>{chapter.name}</A>{chapter.finished ? '✅' : ''}
                 </li>)}
             </For>
             </ul>
