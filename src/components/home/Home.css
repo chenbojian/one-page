@@ -1,29 +1,11 @@
 .app-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  text-decoration: none;
-  background-color: #f0f0f0;
-  border-radius: 12px;
-  padding: 10px;
-  margin: 10px;
-  width: 100px;
-  height: 100px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  font-size: 14px;
-  font-weight: bold;
-  color: #333;
-  transition: transform 0.2s, box-shadow 0.2s;
+  @apply flex items-center justify-center flex-col no-underline bg-gray-200 rounded-xl p-2.5 m-2.5 w-24 h-24 shadow-md text-sm font-bold text-gray-800 transition-transform duration-200;
 }
 
 .app-link:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+  @apply scale-110 shadow-lg;
 }
 
 .app-icon {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 8px;
+  @apply w-10 h-10 mb-2;
 }
