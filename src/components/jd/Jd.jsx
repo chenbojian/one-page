@@ -13,7 +13,8 @@ async function loadData() {
         notifyPrice: watchedItems[i].notifyPrice,
         price: items['item_' + i]?.price,
         minPrice: items['item_' + i]?.min_price,
-        maxPrice: items['item_' + i]?.max_price
+        maxPrice: items['item_' + i]?.max_price,
+        active: watchedItems[i].active
     }))
 }
 
@@ -25,9 +26,12 @@ export default function () {
         item: {
             id: null,
             name: null,
-            notifyPrice: null
+            notifyPrice: null,
+            active: true
         }
     })
+
+    const [showAll, setShowAll] = createStore({ value: false });
 
     const init = () => {
         setState({
@@ -35,16 +39,22 @@ export default function () {
             item: {
                 id: null,
                 name: null,
-                notifyPrice: null
+                notifyPrice: null,
+                active: true
             }
 
         })
         loadData().then(items => {
-            setState('items', items)
+            setState('items', items.map(item => ({ ...item })))
         })
     }
 
     init()
+
+    function toggleActive(index) {
+        setState('items', index, 'active', !state.items[index].active);
+        updateWatchedItem(state.items[index]);
+    }
 
     async function updateWatchedItem(item) {
         await fetch('https://api.internal/api/jd/items/watched', {
@@ -55,33 +65,42 @@ export default function () {
             body: JSON.stringify({
                 [item.id]: {
                     name: item.name,
-                    notifyPrice: parseFloat(item.notifyPrice)
+                    notifyPrice: parseFloat(item.notifyPrice),
+                    active: item.active
                 }
             })
         })
-        init()
     }
 
-
-
     return (
-        <div className="w-full">
-            <For each={state.items}>
-                {(item, index) => (
-                    <div className="text-left mb-3 ml-3 mr-3">
-                        <strong>{item.name}</strong>
-                        <div className="grid grid-cols-[40%,40%,20%]">
-                            <span className="">current: <strong>{item.price}</strong></span>
-                            <span className=" flex">
-                                notify: <input className="w-16 border" type="number" value={item.notifyPrice} onInput={(e) => setState('items', index(), 'notifyPrice', e.target.value)} />
-                            </span>
-                            <button className="bg-slate-300" onClick={() => updateWatchedItem(item)}>Update</button>
-                            <span className="">min: {item.minPrice}</span>
-                            <span className="">max: {item.maxPrice}</span>
-                        </div>
-
+        <div className="w-full h-full">
+            <div className="flex items-center m-3">
+                <input
+                    type="checkbox"
+                    id="filterActive"
+                    checked={!showAll.value}
+                    onChange={(e) => setShowAll('value', !e.target.checked)}
+                />
+                <label htmlFor="filterActive" className="ml-2">Show only active items</label>
+            </div>
+            <For each={state.items.filter(item => showAll.value || item.active)}>
+            {(item, index) => (
+                <div className="text-left mb-3 ml-3 mr-3">
+                    <input type="checkbox" checked={item.active} onChange={() => toggleActive(index())} /> <strong>{item.name}</strong>
+                    <div className="grid grid-cols-[40%,40%]">
+                        <span className="">current: <strong>{item.price}</strong></span>
+                        <span className=" flex">
+                            notify: <input className="w-16 border" type="number" value={item.notifyPrice} onBlur={(e) => {
+                                setState('items', index(), 'notifyPrice', e.target.value);
+                                updateWatchedItem(state.items[index()]);
+                            }} />
+                        </span>
+                        <span className="">min: {item.minPrice}</span>
+                        <span className="">max: {item.maxPrice}</span>
                     </div>
-                )}
+
+                </div>
+            )}
             </For>
             <div className="flex flex-col m-3">
                 <input className="flex-1 mb-1 p-1 border" type="text" placeholder="京东商品ID" value={state.item.id} onInput={(e) => setState('item', 'id', e.target.value)} />
