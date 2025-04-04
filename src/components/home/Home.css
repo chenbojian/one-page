@@ -1,0 +1,29 @@
+.app-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-decoration: none;
+  background-color: #f0f0f0;
+  border-radius: 12px;
+  padding: 10px;
+  margin: 10px;
+  width: 100px;
+  height: 100px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.app-link:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+}
+
+.app-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+}
