@@ -20,7 +20,7 @@ export default function Chapter() {
     const getChapterImages = () => getChapter()?.images ?? []
 
     const getBookUrl = () => {
-        return "/book?url=" + (getChapter()?.bookUrl ?? "")
+        return "/manki/book?url=" + (getChapter()?.bookUrl ?? "")
     }
 
     const getNextChapterUrl = () => {
