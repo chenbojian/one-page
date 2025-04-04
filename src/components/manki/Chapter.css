@@ -15,3 +15,7 @@ a {
 div.content {
     min-height: 300vh;
 }
+
+img {
+    width: 100%;
+}
