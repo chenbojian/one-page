@@ -19,10 +19,10 @@ async function loadData() {
         return null;
     }
     return Object.keys(watchedItems)
-        .filter(i => i && i !== 'null' && watchedItems[i] && watchedItems[i].name) // Filter out null/invalid entries
+        .filter(i => i && i !== 'null' && watchedItems[i]) // Filter out null/invalid entries
         .map(i => ({
             id: i,
-            name: watchedItems[i].name,
+            name: items['item_' + i]?.name || i, // Get name from items, fallback to id
             notifyPrice: watchedItems[i].notifyPrice,
             price: items['item_' + i]?.price,
             minPrice: items['item_' + i]?.min_price,
@@ -39,8 +39,6 @@ export default function () {
         items: [],
         item: {
             id: null,
-            name: null,
-            notifyPrice: null,
             active: true
         }
     })
@@ -64,8 +62,6 @@ export default function () {
             items: [],
             item: {
                 id: null,
-                name: null,
-                notifyPrice: null,
                 active: true
             }
         })
@@ -89,8 +85,8 @@ export default function () {
 
     async function updateWatchedItem(item) {
         // Validate required fields
-        if (!item.id || !item.name || item.notifyPrice === null || item.notifyPrice === undefined) {
-            console.error('Cannot update: missing required fields (id, name, or notifyPrice)');
+        if (!item.id) {
+            console.error('Cannot update: missing required field (id)');
             return;
         }
         
@@ -101,16 +97,78 @@ export default function () {
             },
             body: JSON.stringify({
                 [item.id]: {
-                    name: item.name,
-                    notifyPrice: parseFloat(item.notifyPrice),
+                    notifyPrice: item.notifyPrice !== null && item.notifyPrice !== undefined 
+                        ? parseFloat(item.notifyPrice) 
+                        : 99999,
                     active: item.active !== undefined ? item.active : true
                 }
             })
         })
     }
 
+    function extractItemId(input) {
+        if (!input) return null;
+        
+        // If it's already just a number, return it
+        if (/^\d+$/.test(input.trim())) {
+            return input.trim();
+        }
+        
+        // Try to extract ID from JD URL patterns
+        // Examples:
+        // https://item.jd.com/100084849115.html
+        // http://item.jd.com/100084849115.html
+        // item.jd.com/100084849115.html
+        // item.jd.com/100084849115
+        const patterns = [
+            /item\.jd\.com\/(\d+)/i,
+            /\/item\/jd\.com\/(\d+)/i,
+            /(\d+)\.html/i
+        ];
+        
+        for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        
+        // If no pattern matches, try to extract any sequence of digits
+        const digitMatch = input.match(/(\d{6,})/); // At least 6 digits (JD item IDs are usually long)
+        if (digitMatch) {
+            return digitMatch[1];
+        }
+        
+        return null;
+    }
+
+    function handleIdInput(e) {
+        const input = e.target.value;
+        setState('item', 'id', input);
+    }
+
+    function handleIdBlur(e) {
+        const input = e.target.value;
+        const extractedId = extractItemId(input);
+        if (extractedId) {
+            setState('item', 'id', extractedId);
+        }
+    }
+
     async function handleAddItem() {
-        await updateWatchedItem(state.item);
+        if (!state.item.id) {
+            console.error('Cannot add: missing required field (id)');
+            return;
+        }
+        
+        // Extract ID in case user pasted a URL
+        const extractedId = extractItemId(state.item.id);
+        if (!extractedId) {
+            console.error('Cannot add: invalid ID format');
+            return;
+        }
+        
+        await updateWatchedItem({ ...state.item, id: extractedId });
         
         // Reload data to show the new item
         loadAndSortItems();
@@ -118,8 +176,6 @@ export default function () {
         // Clear the form
         setState('item', {
             id: null,
-            name: null,
-            notifyPrice: null,
             active: true
         });
     }
@@ -148,9 +204,14 @@ export default function () {
             )}
             </For>
             <div className="flex flex-col m-3">
-                <input className="flex-1 mb-1 p-1 border" type="text" placeholder="京东商品ID" value={state.item.id} onInput={(e) => setState('item', 'id', e.target.value)} />
-                <input className="flex-1 mb-1 p-1 border" type="text" placeholder="京东商品名称" value={state.item.name} onInput={(e) => setState('item', 'name', e.target.value)} />
-                <input className="flex-1 mb-1 p-1 border" type="number" placeholder="notifyPrice" value={state.item.notifyPrice} onInput={(e) => setState('item', 'notifyPrice', e.target.value)} />
+                <input 
+                    className="flex-1 mb-1 p-1 border" 
+                    type="text" 
+                    placeholder="京东商品ID或链接 (如: 100084849115 或 https://item.jd.com/100084849115.html)" 
+                    value={state.item.id || ''} 
+                    onInput={handleIdInput}
+                    onBlur={handleIdBlur}
+                />
                 <button className="bg-slate-300 w-20" onClick={() => handleAddItem()}>Add</button>
             </div>
         </div>
