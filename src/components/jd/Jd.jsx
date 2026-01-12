@@ -1,5 +1,6 @@
-import { createResource, For, Index } from "solid-js"
+import { createResource, For, Index, onMount, onCleanup, createEffect } from "solid-js"
 import { createStore, produce } from 'solid-js/store'
+import * as echarts from 'echarts'
 
 
 async function loadData() {
@@ -28,6 +29,7 @@ async function loadData() {
             minPrice: items['item_' + i]?.min_price,
             maxPrice: items['item_' + i]?.max_price,
             updatedAt: getUpdatedAt(items['item_' + i]),
+            priceHistory: items['item_' + i]?.price_history || null,
             active: watchedItems[i].active
         }))
 }
@@ -188,6 +190,220 @@ export default function () {
         return 'default';
     }
 
+    function PriceChart(props) {
+        let chartContainer;
+        let chartInstance;
+
+        const initChart = () => {
+            if (!chartContainer || !props.priceHistory) return;
+
+            // Parse price history
+            const priceHistory = props.priceHistory;
+            
+            // Filter data to only include last year
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            
+            const data = Object.entries(priceHistory)
+                .map(([date, price]) => ({
+                    date: new Date(date),
+                    price: parseFloat(price)
+                }))
+                .filter(d => d.date >= oneYearAgo) // Only keep data from last year
+                .sort((a, b) => a.date - b.date);
+
+            if (data.length === 0) return;
+
+            // Find minimum price point in filtered data
+            const minPricePoint = data.reduce((min, current) => 
+                current.price < min.price ? current : min
+            );
+
+            // Sample data if too many points (max 50 points)
+            let chartData = data;
+            if (data.length > 50) {
+                const step = Math.ceil(data.length / 50);
+                chartData = data.filter((_, i) => i % step === 0 || i === data.length - 1);
+                
+                // Ensure min point is included in sampled data
+                const minIndex = data.findIndex(d => 
+                    d.date.getTime() === minPricePoint.date.getTime() && 
+                    d.price === minPricePoint.price
+                );
+                if (minIndex !== -1) {
+                    const minInSampled = chartData.find(d => 
+                        d.date.getTime() === minPricePoint.date.getTime() && 
+                        d.price === minPricePoint.price
+                    );
+                    if (!minInSampled) {
+                        // Add min point to chartData
+                        chartData.push(minPricePoint);
+                        chartData.sort((a, b) => a.date - b.date);
+                    }
+                }
+            }
+
+            const dates = chartData.map(d => {
+                const date = new Date(d.date);
+                date.setHours(date.getHours() + 8); // Convert to UTC+8
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+            });
+            const prices = chartData.map(d => d.price);
+
+            // Find min point index in chartData
+            const minPointIndex = chartData.findIndex(d => 
+                d.date.getTime() === minPricePoint.date.getTime() && 
+                d.price === minPricePoint.price
+            );
+
+
+            const option = {
+                grid: {
+                    left: '10%',
+                    right: '5%',
+                    top: '10%',
+                    bottom: '20%',
+                    containLabel: false
+                },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    show: true,
+                    boundaryGap: false,
+                    axisLabel: {
+                        show: true,
+                        formatter: (value, index) => {
+                            // Show label for first, last, and min point
+                            if (index === 0 || index === dates.length - 1 || index === minPointIndex) {
+                                // Highlight min point date
+                                if (index === minPointIndex) {
+                                    return `{a|${value}}`;
+                                }
+                                return value;
+                            }
+                            return '';
+                        },
+                        rich: {
+                            a: {
+                                color: '#10b981',
+                                fontWeight: 'bold',
+                                fontSize: 11
+                            }
+                        },
+                        fontSize: 9,
+                        color: '#9ca3af',
+                        margin: 8
+                    },
+                    axisLine: {
+                        show: false
+                    },
+                    axisTick: {
+                        show: false
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    show: false,
+                    scale: true
+                },
+                series: [
+                    {
+                        name: '价格',
+                        type: 'line',
+                        data: prices,
+                        smooth: true,
+                        symbol: 'none',
+                        lineStyle: {
+                            color: '#3b82f6',
+                            width: 2
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                                    { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+                                ]
+                            }
+                        },
+                        markPoint: minPointIndex !== -1 ? {
+                            data: [
+                                {
+                                    name: '最低价',
+                                    coord: [minPointIndex, minPricePoint.price],
+                                    symbol: 'circle',
+                                    symbolSize: 8,
+                                    itemStyle: {
+                                        color: '#10b981',
+                                        borderColor: '#fff',
+                                        borderWidth: 2
+                                    },
+                                    label: {
+                                        show: false // Hide label to avoid blocking the curve
+                                    }
+                                }
+                            ]
+                        } : undefined,
+                        emphasis: {
+                            focus: 'series'
+                        }
+                    }
+                ],
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: (params) => {
+                        const param = params[0];
+                        return `${param.name}<br/>¥${param.value.toFixed(2)}`;
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    borderColor: 'transparent',
+                    textStyle: {
+                        color: '#fff',
+                        fontSize: 12
+                    }
+                }
+            };
+
+            if (!chartInstance) {
+                chartInstance = echarts.init(chartContainer);
+                // Handle resize
+                const handleResize = () => {
+                    chartInstance?.resize();
+                };
+                window.addEventListener('resize', handleResize);
+
+                onCleanup(() => {
+                    window.removeEventListener('resize', handleResize);
+                    chartInstance?.dispose();
+                });
+            }
+
+            chartInstance.setOption(option);
+        };
+
+        onMount(() => {
+            initChart();
+        });
+
+        createEffect(() => {
+            if (props.priceHistory) {
+                initChart();
+            }
+        });
+
+        return (
+            <div 
+                ref={(el) => chartContainer = el} 
+                class="w-full h-20"
+                style={{ minHeight: '80px' }}
+            />
+        );
+    }
+
     return (
         <div className="w-full h-full bg-gray-50 p-4">
             {/* Header */}
@@ -252,6 +468,14 @@ export default function () {
                                 {isGoodPrice && (
                                     <div className="bg-green-50 border border-green-200 rounded px-2 py-1 text-xs text-green-700 font-medium">
                                         ✓ 已达到目标价格
+                                    </div>
+                                )}
+
+                                {/* Price Chart */}
+                                {item.priceHistory && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <div className="text-xs text-gray-500 mb-2">价格趋势</div>
+                                        <PriceChart priceHistory={item.priceHistory} />
                                     </div>
                                 )}
 
