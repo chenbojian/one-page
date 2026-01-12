@@ -180,40 +180,135 @@ export default function () {
         });
     }
 
-    return (
-        <div className="w-full h-full">
-            <For each={state.items}>
-            {(item, index) => (
-                <div className="text-left mb-3 ml-3 mr-3">
-                    <input type="checkbox" checked={item.active} onChange={() => toggleActive(index())} /> <strong>{item.name}</strong>
-                    <div className="grid grid-cols-[40%,40%]">
-                        <span className="">current: <strong>{item.price}</strong> ({item.updatedAt})</span>
-                        <span className=" flex">
-                            notify: <input className="w-16 border" type="number" value={item.notifyPrice} onBlur={(e) => {
-                                setState('items', index(), 'notifyPrice', e.target.value);
-                                // Get the updated item from state
-                                const updatedItem = { ...state.items[index()], notifyPrice: e.target.value };
-                                updateWatchedItem(updatedItem);
-                            }} />
-                        </span>
-                        <span className="">min: {item.minPrice}</span>
-                        <span className="">max: {item.maxPrice}</span>
-                    </div>
+    const getPriceStatus = (item) => {
+        if (!item.price || !item.notifyPrice) return 'default';
+        const price = parseFloat(item.price);
+        const notifyPrice = parseFloat(item.notifyPrice);
+        if (price <= notifyPrice) return 'good'; // Price is at or below notify price
+        return 'default';
+    }
 
+    return (
+        <div className="w-full h-full bg-gray-50 p-4">
+            {/* Header */}
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">京东商品价格监控</h1>
+                <p className="text-sm text-gray-500">监控商品价格，当价格低于设定值时通知您</p>
+            </div>
+
+            {/* Add Item Form */}
+            <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+                <h2 className="text-lg font-semibold text-gray-700 mb-3">添加监控商品</h2>
+                <div className="flex gap-2">
+                    <input 
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                        type="text" 
+                        placeholder="输入商品ID或链接 (如: 100084849115 或 https://item.jd.com/100084849115.html)" 
+                        value={state.item.id || ''} 
+                        onInput={handleIdInput}
+                        onBlur={handleIdBlur}
+                    />
+                    <button 
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium shadow-sm hover:shadow-md" 
+                        onClick={() => handleAddItem()}
+                    >
+                        添加
+                    </button>
+                </div>
+            </div>
+
+            {/* Items List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <For each={state.items}>
+                {(item, index) => {
+                    const priceStatus = getPriceStatus(item);
+                    const isGoodPrice = priceStatus === 'good';
+                    return (
+                        <div className={`bg-white rounded-lg shadow-md p-4 transition-all hover:shadow-lg ${!item.active ? 'opacity-60' : ''}`}>
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-2 flex-1">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={item.active} 
+                                        onChange={() => toggleActive(index())}
+                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <h3 className="font-semibold text-gray-800 text-sm leading-tight flex-1 line-clamp-2">
+                                        {item.name}
+                                    </h3>
+                                </div>
+                            </div>
+
+                            {/* Price Info */}
+                            <div className="space-y-2 mb-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500">当前价格</span>
+                                    <span className={`text-lg font-bold ${isGoodPrice ? 'text-green-600' : 'text-gray-800'}`}>
+                                        ¥{item.price || '--'}
+                                    </span>
+                                </div>
+                                
+                                {isGoodPrice && (
+                                    <div className="bg-green-50 border border-green-200 rounded px-2 py-1 text-xs text-green-700 font-medium">
+                                        ✓ 已达到目标价格
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                        <span className="text-gray-500">最低:</span>
+                                        <span className="ml-1 font-medium text-gray-700">¥{item.minPrice || '--'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-500">最高:</span>
+                                        <span className="ml-1 font-medium text-gray-700">¥{item.maxPrice || '--'}</span>
+                                    </div>
+                                </div>
+
+                                {item.updatedAt && (
+                                    <div className="text-xs text-gray-400">
+                                        更新: {item.updatedAt}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Notify Price Input */}
+                            <div className="border-t pt-3">
+                                <label className="block text-xs text-gray-500 mb-1">通知价格</label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" 
+                                        type="number" 
+                                        value={item.notifyPrice || ''} 
+                                        placeholder="99999"
+                                        onBlur={(e) => {
+                                            setState('items', index(), 'notifyPrice', e.target.value);
+                                            const updatedItem = { ...state.items[index()], notifyPrice: e.target.value };
+                                            updateWatchedItem(updatedItem);
+                                        }} 
+                                    />
+                                    <span className="text-xs text-gray-400">元</span>
+                                </div>
+                            </div>
+
+                            {/* Item ID */}
+                            <div className="mt-2 text-xs text-gray-400">
+                                ID: {item.id}
+                            </div>
+                        </div>
+                    );
+                }}
+                </For>
+            </div>
+
+            {/* Empty State */}
+            {state.items.length === 0 && (
+                <div className="text-center py-12">
+                    <div className="text-gray-400 text-lg mb-2">暂无监控商品</div>
+                    <div className="text-gray-400 text-sm">在上方输入商品ID或链接开始监控</div>
                 </div>
             )}
-            </For>
-            <div className="flex flex-col m-3">
-                <input 
-                    className="flex-1 mb-1 p-1 border" 
-                    type="text" 
-                    placeholder="京东商品ID或链接 (如: 100084849115 或 https://item.jd.com/100084849115.html)" 
-                    value={state.item.id || ''} 
-                    onInput={handleIdInput}
-                    onBlur={handleIdBlur}
-                />
-                <button className="bg-slate-300 w-20" onClick={() => handleAddItem()}>Add</button>
-            </div>
         </div>
     )
 }
